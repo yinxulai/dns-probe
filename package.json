@@ -1,5 +1,5 @@
 {
-  "name": "node-dns",
+  "name": "dns-probe",
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
@@ -8,12 +8,15 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/yinxulai/node-dns.git"
+    "url": "git+https://github.com/yinxulai/dns-probe.git"
   },
   "author": "",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/yinxulai/node-dns/issues"
+    "url": "https://github.com/yinxulai/dns-probe/issues"
   },
-  "homepage": "https://github.com/yinxulai/node-dns#readme"
+  "homepage": "https://github.com/yinxulai/dns-probe#readme",
+  "devDependencies": {
+    "@types/node": "^16.11.7"
+  }
 }

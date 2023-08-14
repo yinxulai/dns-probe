@@ -1,0 +1,7 @@
+node_modules
+.DS_Store
+# Work around file for eslint config
+!.eslintrc.js
+
+# 测试覆盖率结果
+__coverage__
