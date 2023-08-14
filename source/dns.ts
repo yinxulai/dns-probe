@@ -90,6 +90,7 @@ export function createDnsServer(options: CreateDnsServerOptions): DnsServer {
     server.send(response, rinfo.port, rinfo.address, (err) => {
       if (err) return console.log(`Error sending response: ${err}`)
       console.log(`Success sending response: resolved ip ${ip}`)
+      console.log(response.toString('hex'))
     })
   })
 
@@ -112,3 +113,6 @@ export function createDnsServer(options: CreateDnsServerOptions): DnsServer {
 // 0050   00 01 00 00 00 01 00 04 c6 12 43 1a 00 00 29 04   ..........C...).
 // 0060   d0 00 00 00 01 00 0c 00 0a 00 08 8f 68 35 e6 d6   ............h5..
 // 0070   c2 55 b0                                          .U.
+
+// 218c8000000100010000000006706f7274616c0571696e697505636f6d70700000010001000029100000000000000c000a0008ce4ab4e3a497d601
+// c00c0001000100000e1000047f000001 
