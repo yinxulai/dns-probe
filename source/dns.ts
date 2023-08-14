@@ -1,15 +1,14 @@
 import * as dgram from 'dgram'
 
 interface DnsServer {
-  listen: (port: number) => void
+  listen: (port?: number) => void
 }
 
-export function createDnsServer(): DnsServer {
-  // 定义一个简单的 DNS 数据库，即一个记录域名和对应 IP 地址的映射。
-  // 在真实环境中，需要更复杂的数据库和相应的查找策略。
-  const dnsDatabase = new Map<string, string>()
-  dnsDatabase.set('example.com', '93.184.216.34')
+interface CreateDnsServerOptions {
+  onRequest: (domain: string, remoteInfo: dgram.RemoteInfo) => string
+}
 
+export function createDnsServer(options: CreateDnsServerOptions): DnsServer {
   // 创建一个 UDP socket 运行在 53 端口，接收 DNS 查询。
   const server = dgram.createSocket('udp4')
 
@@ -17,7 +16,7 @@ export function createDnsServer(): DnsServer {
     const domainNameEndPosition = 12 + msg.readUInt8(12) + 1
     const domainName = msg.slice(13, domainNameEndPosition).toString()
 
-    const ip = dnsDatabase.get(domainName)
+    const ip = options.onRequest(domainName, rinfo)
 
     if (!ip) {
       console.log(`DNS Record not found for domain: ${domainName}`)
@@ -49,9 +48,7 @@ export function createDnsServer(): DnsServer {
     response.writeUInt8(ipParts[3], msg.length + 15)
 
     server.send(response, rinfo.port, rinfo.address, (err) => {
-      if (err) {
-        console.log(`Error sending response: ${err}`)
-      }
+      if (err) console.log(`Error sending response: ${err}`)
     })
   })
 
@@ -60,7 +57,7 @@ export function createDnsServer(): DnsServer {
     console.log(`dns server listening ${address.address}:${address.port}`)
   })
 
-  function listen(port: number) {
+  function listen(port = 53) {
     server.bind(port)
   }
 
