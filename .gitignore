@@ -3,5 +3,7 @@ node_modules
 # Work around file for eslint config
 !.eslintrc.js
 
+output
+
 # 测试覆盖率结果
 __coverage__

@@ -21,5 +21,5 @@ const httpServer = createHttpServer({
   }
 })
 
-dnsServer.listen()
+dnsServer.listen(53)
 httpServer.listen(9000)
