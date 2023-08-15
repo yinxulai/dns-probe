@@ -9,20 +9,25 @@ interface CreateDnsServerOptions {
 }
 
 function parseDomainFromQuery(query: Buffer): string {
-  let position = 12; // skip the header
-  let labels = [];
+  let position = 12 // skip the header
+  let labels = []
 
-  while (query.readUInt8(position) !== 0) { // end of labels marked by 0
-    const length = query.readUInt8(position);
-    position++;
+  while (position <= query.length && query.readUInt8(position) !== 0) { // check buffer bounds and end of labels marked by 0
+    const length = query.readUInt8(position)
+    position++
 
-    const label = query.slice(position, position + length);
-    labels.push(label.toString());
+    // Add check for buffer bounds
+    if (position + length > query.length) {
+      throw new Error('Invalid DNS query: Reached end of buffer while parsing domain name labels')
+    }
 
-    position += length;
+    const label = query.slice(position, position + length)
+    labels.push(label.toString())
+
+    position += length
   }
 
-  return labels.join(".");
+  return labels.join(".").toLowerCase()
 }
 
 export function createDnsServer(options: CreateDnsServerOptions): DnsServer {
@@ -77,13 +82,13 @@ export function createDnsServer(options: CreateDnsServerOptions): DnsServer {
     response.writeUInt8(ipParts[3], msg.length + 15)
 
     // 处理 Additional records
-    const additionalRecordsStart = msg.length + 16;
+    const additionalRecordsStart = msg.length + 16
     for (let i = 0; i < numAdditionalRecords; i++) {
-      const srcStart = msg.length + (i * 16); // 查询消息中某个 Additional record 的起始位置
-      const destStart = additionalRecordsStart + (i * 16); // 响应消息中对应 Additional record 的起始位置
-      
+      const srcStart = msg.length + (i * 16) // 查询消息中某个 Additional record 的起始位置
+      const destStart = additionalRecordsStart + (i * 16) // 响应消息中对应 Additional record 的起始位置
+
       // 从查询消息中复制 Additional record 到响应消息中
-      msg.copy(response, destStart, srcStart, srcStart + 16);
+      msg.copy(response, destStart, srcStart, srcStart + 16)
     }
 
     server.send(response, rinfo.port, rinfo.address, (err) => {
