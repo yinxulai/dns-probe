@@ -15,7 +15,7 @@ const httpServer = createHttpServer({
   onRequest(host) {
     const domain = host.toLowerCase().replace(/:.+$/, '')
     const dnsQueryIP = dnsRequestRecord.get(domain)
-    console.log(domain, dnsRequestRecord)
+    console.log(`${domain} => ${dnsQueryIP}`)
     dnsRequestRecord.delete(domain)
     return dnsQueryIP || 'undefined'
   }
