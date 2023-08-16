@@ -6,7 +6,9 @@ const dnsRequestRecord = new Map<string, string>()
 
 const dnsServer = createDnsServer({
   onRequest(domain, remoteInfo) {
-    dnsRequestRecord.set(domain.toLowerCase(), remoteInfo.address)
+    const lowDomain = domain.toLowerCase()
+    dnsRequestRecord.set(lowDomain, remoteInfo.address)
+    console.log(`dns server request resolved: ${lowDomain} => ${serverHostIP}`)
     return serverHostIP
   }
 })
@@ -15,7 +17,7 @@ const httpServer = createHttpServer({
   onRequest(host) {
     const domain = host.toLowerCase().replace(/:.+$/, '')
     const dnsQueryIP = dnsRequestRecord.get(domain)
-    console.log(`${domain} => ${dnsQueryIP}`)
+    console.log(`http server handle request: ${domain} => ${dnsQueryIP}`)
     dnsRequestRecord.delete(domain)
     return dnsQueryIP || 'undefined'
   }

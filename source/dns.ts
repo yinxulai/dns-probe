@@ -45,9 +45,6 @@ export function createDnsServer(options: CreateDnsServerOptions): DnsServer {
     }
 
     const domainName = parseDomainFromQuery(msg)
-
-    console.log(`Received a query request: ${domainName}`)
-
     const ip = options.onRequest(domainName, rinfo)
 
     if (!ip) {
@@ -93,7 +90,6 @@ export function createDnsServer(options: CreateDnsServerOptions): DnsServer {
 
     server.send(response, rinfo.port, rinfo.address, (err) => {
       if (err) return console.log(`Error sending response: ${err}`)
-      console.log(`Success sending response: resolved ip ${ip}`)
     })
   })
 
