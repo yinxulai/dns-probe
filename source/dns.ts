@@ -8,6 +8,45 @@ interface CreateDnsServerOptions {
   onRequest: (domain: string, remoteInfo: dgram.RemoteInfo) => string
 }
 
+function createResponse(request: Buffer, ip: string): Buffer {
+  // 获取查询消息中的 Additional records 数量
+  const numAdditionalRecords = request.readUInt16BE(10)
+  // 计算 Additional records 的长度
+  const additionalRecordsLength = numAdditionalRecords * 16 // 每个 Additional record 的长度为 16 字节
+
+  const response = Buffer.alloc(request.length + 16 + additionalRecordsLength)
+  request.copy(response)
+
+  response.writeUInt16BE(0x8000, 2)
+
+  response.writeUInt16BE(1, 6)
+  response.writeUInt16BE(0, 8)
+  response.writeUInt16BE(numAdditionalRecords, 10) // 设置额外资源记录数
+
+  response.writeUInt16BE(0xC00C, request.length)
+  response.writeUInt16BE(0x0001, request.length + 2)
+  response.writeUInt16BE(0x0001, request.length + 4)
+  response.writeUInt32BE(3600, request.length + 6)
+  response.writeUInt16BE(0x0004, request.length + 10)
+
+  const ipParts = ip.split('.').map(part => parseInt(part))
+  response.writeUInt8(ipParts[0], request.length + 12)
+  response.writeUInt8(ipParts[1], request.length + 13)
+  response.writeUInt8(ipParts[2], request.length + 14)
+  response.writeUInt8(ipParts[3], request.length + 15)
+
+  // 处理 Additional records
+  const additionalRecordsStart = request.length + 16
+  for (let i = 0; i < numAdditionalRecords; i++) {
+    const srcStart = request.length + (i * 16) // 查询消息中某个 Additional record 的起始位置
+    const destStart = additionalRecordsStart + (i * 16) // 响应消息中对应 Additional record 的起始位置
+
+    // 从查询消息中复制 Additional record 到响应消息中
+    request.copy(response, destStart, srcStart, srcStart + 16)
+  }
+  return response
+}
+
 function parseDomainFromQuery(query: Buffer): string {
   let position = 12 // skip the header
   let labels = []
@@ -33,59 +72,26 @@ function parseDomainFromQuery(query: Buffer): string {
 export function createDnsServer(options: CreateDnsServerOptions): DnsServer {
   const server = dgram.createSocket('udp4')
 
-  server.on('message', (msg, rinfo) => {
-    if (msg.length < 12) {
+  server.on('message', (request, rinfo) => {
+    if (request.length < 12) {
       console.log('Message too short, potentially not a valid DNS query.')
       return
     }
 
-    if ((msg.readUInt16BE(2) & 0x800F) !== 0x0000) {
+    if ((request.readUInt16BE(2) & 0x800F) !== 0x0000) {
       console.log('Not a standard query, potentially not a valid DNS query.')
       return
     }
 
-    const domainName = parseDomainFromQuery(msg)
+    const domainName = parseDomainFromQuery(request)
     const ip = options.onRequest(domainName, rinfo)
 
-    if (!ip) {
-      console.log(`DNS Record not found for domain: ${domainName}`)
+    let response: Buffer | null = null
+    try {
+      response = createResponse(request, ip)
+    } catch (error) {
+      console.log(`Failed to create response: ${domainName}`, error)
       return
-    }
-
-    // 获取查询消息中的 Additional records 数量
-    const numAdditionalRecords = msg.readUInt16BE(10)
-    // 计算 Additional records 的长度
-    const additionalRecordsLength = numAdditionalRecords * 16 // 每个 Additional record 的长度为 16 字节
-
-    const response = Buffer.alloc(msg.length + 16 + additionalRecordsLength)
-    msg.copy(response)
-
-    response.writeUInt16BE(0x8000, 2)
-
-    response.writeUInt16BE(1, 6)
-    response.writeUInt16BE(0, 8)
-    response.writeUInt16BE(numAdditionalRecords, 10) // 设置额外资源记录数
-
-    response.writeUInt16BE(0xC00C, msg.length)
-    response.writeUInt16BE(0x0001, msg.length + 2)
-    response.writeUInt16BE(0x0001, msg.length + 4)
-    response.writeUInt32BE(3600, msg.length + 6)
-    response.writeUInt16BE(0x0004, msg.length + 10)
-
-    const ipParts = ip.split('.').map(part => parseInt(part))
-    response.writeUInt8(ipParts[0], msg.length + 12)
-    response.writeUInt8(ipParts[1], msg.length + 13)
-    response.writeUInt8(ipParts[2], msg.length + 14)
-    response.writeUInt8(ipParts[3], msg.length + 15)
-
-    // 处理 Additional records
-    const additionalRecordsStart = msg.length + 16
-    for (let i = 0; i < numAdditionalRecords; i++) {
-      const srcStart = msg.length + (i * 16) // 查询消息中某个 Additional record 的起始位置
-      const destStart = additionalRecordsStart + (i * 16) // 响应消息中对应 Additional record 的起始位置
-
-      // 从查询消息中复制 Additional record 到响应消息中
-      msg.copy(response, destStart, srcStart, srcStart + 16)
     }
 
     server.send(response, rinfo.port, rinfo.address, (err) => {
