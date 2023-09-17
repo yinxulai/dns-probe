@@ -5,6 +5,7 @@
   "main": "index.js",
   "scripts": {
     "build": "tsc",
+    "start": "node ./output/index.js",
     "dev": "ts-node ./source/index.ts"
   },
   "repository": {
