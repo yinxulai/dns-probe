@@ -6,7 +6,8 @@
   "scripts": {
     "build": "tsc",
     "start": "node ./output/index.js",
-    "dev": "ts-node ./source/index.ts"
+    "dev": "ts-node ./source/index.ts",
+    "image":"docker build -t dns-probe:1.0.0 ."
   },
   "repository": {
     "type": "git",
